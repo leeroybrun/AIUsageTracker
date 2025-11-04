@@ -2,19 +2,19 @@ import Foundation
 import VibeviewerModel
 
 struct OpenAIUsageProvider: UsageProvider {
-    let settings: AppSettings.ProviderSettings
+    let apiKey: String
+    let organization: String?
     let session: URLSession
 
-    init(settings: AppSettings.ProviderSettings, session: URLSession = .shared) {
-        self.settings = settings
+    init(apiKey: String, organization: String?, session: URLSession = .shared) {
+        self.apiKey = apiKey
+        self.organization = organization
         self.session = session
     }
 
     var kind: UsageProviderKind { .openAI }
 
     func fetchTotals(dateRange: DateInterval) async throws -> ProviderUsageTotal? {
-        guard settings.openAIAPIKey.isEmpty == false else { return nil }
-
         let startDate = dateRange.start
         let endDate = dateRange.end
 
@@ -24,8 +24,8 @@ struct OpenAIUsageProvider: UsageProvider {
 
         var request = URLRequest(url: URL(string: "https://api.openai.com/v1/billing/usage?start_date=\(startString)&end_date=\(endString)")!)
         request.httpMethod = "GET"
-        request.setValue("Bearer \(settings.openAIAPIKey)", forHTTPHeaderField: "Authorization")
-        if let organization = settings.openAIOrganization, organization.isEmpty == false {
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        if let organization, organization.isEmpty == false {
             request.setValue(organization, forHTTPHeaderField: "OpenAI-Organization")
         }
 
@@ -58,8 +58,8 @@ struct OpenAIUsageProvider: UsageProvider {
         ]
         var request = URLRequest(url: components.url!)
         request.httpMethod = "GET"
-        request.setValue("Bearer \(settings.openAIAPIKey)", forHTTPHeaderField: "Authorization")
-        if let organization = settings.openAIOrganization, organization.isEmpty == false {
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        if let organization, organization.isEmpty == false {
             request.setValue(organization, forHTTPHeaderField: "OpenAI-Organization")
         }
 

@@ -29,6 +29,7 @@ public struct MenuPopoverView: View {
     public init() {}
 
     @State private var state: ViewState = .loading
+    @State private var showLiveMonitoring: Bool = false
 
     public var body: some View {
         @Bindable var appSettings = appSettings
@@ -46,6 +47,11 @@ public struct MenuPopoverView: View {
             }
 
             if let snapshot = self.session.snapshot {
+                if !snapshot.forecastWarnings.isEmpty {
+                    AlertsView(warnings: snapshot.forecastWarnings)
+                    Divider().opacity(0.5)
+                }
+
                 MetricsView(metric: .billing(snapshot.billingMetrics))
 
                 if let free = snapshot.freeUsageMetrics {
@@ -56,23 +62,34 @@ public struct MenuPopoverView: View {
                     MetricsView(metric: .onDemand(onDemandMetrics))
                 }
 
-                // Divider().opacity(0.5)
-                
-                // RequestsCompareView(requestToday: self.session.snapshot?.requestToday ?? 0, requestYestoday: self.session.snapshot?.requestYestoday ?? 0)
-                
                 Divider().opacity(0.5)
 
-                UsageEventView(events: self.session.snapshot?.usageEvents ?? [])
-                
+                Toggle(isOn: $showLiveMonitoring) {
+                    Text(LocalizedStringResource("live.toggle", bundle: .module, table: "Menu"))
+                        .font(.app(.satoshiMedium, size: 12))
+                }
+                .toggleStyle(.switch)
+
+                if showLiveMonitoring, let live = snapshot.liveMetrics {
+                    LiveUsageSection(metrics: live)
+                } else {
+                    UsageEventView(events: self.session.snapshot?.usageEvents ?? [])
+                }
+
                 if let analytics = self.session.snapshot?.userAnalytics {
                     Divider().opacity(0.5)
-                    
+
                     UserAnalyticsChartView(analytics: analytics)
                 }
 
                 Divider().opacity(0.5)
 
                 totalCreditsUsageView
+
+                if !snapshot.aggregations.isEmpty {
+                    Divider().opacity(0.5)
+                    AggregationsSection(aggregations: snapshot.aggregations)
+                }
 
                 if let totals = self.session.snapshot?.providerTotals, !totals.isEmpty {
                     Divider().opacity(0.5)
@@ -113,7 +130,7 @@ public struct MenuPopoverView: View {
                 }
             })
         } label: {
-            Text("Login to Cursor")
+            Text(LocalizedStringResource("login.button", bundle: .module, table: "Menu"))
         }
         .buttonStyle(.vibe(.primary))
         .maxFrame(true, false)
@@ -121,7 +138,7 @@ public struct MenuPopoverView: View {
 
     private var totalCreditsUsageView: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Total Credits Usage")
+            Text(LocalizedStringResource("usage.total", bundle: .module, table: "Menu"))
                 .font(.app(.satoshiRegular, size: 12))
                 .foregroundStyle(.secondary)
 
@@ -129,14 +146,20 @@ public struct MenuPopoverView: View {
                 .font(.app(.satoshiBold, size: 16))
                 .foregroundStyle(.primary)
                 .contentTransition(.numericText())
-                
+
+            if let localized = session.snapshot?.localizedSpendDisplay {
+                Text(localized)
+                    .font(.app(.satoshiMedium, size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
         }
         .maxFrame(true, false, alignment: .leading)
     }
 
     private func providerTotalsView(totals: [ProviderUsageTotal]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("External Provider Usage")
+            Text(LocalizedStringResource("providers.title", bundle: .module, table: "Menu"))
                 .font(.app(.satoshiRegular, size: 12))
                 .foregroundStyle(.secondary)
 
@@ -182,5 +205,118 @@ public struct MenuPopoverView: View {
 
     private func openDashboard() {
         NSWorkspace.shared.open(URL(string: "https://cursor.com/dashboard?tab=usage")!)
+    }
+}
+
+private struct AlertsView: View {
+    let warnings: [ForecastWarning]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(LocalizedStringResource("alerts.title", bundle: .module, table: "Menu"))
+                .font(.app(.satoshiRegular, size: 12))
+                .foregroundStyle(.secondary)
+            ForEach(warnings) { warning in
+                HStack {
+                    Circle()
+                        .fill(color(for: warning.severity))
+                        .frame(width: 8, height: 8)
+                    Text(warning.message)
+                        .font(.app(.satoshiMedium, size: 12))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                }
+            }
+        }
+        .maxFrame(true, alignment: .leading)
+    }
+
+    private func color(for severity: ForecastSeverity) -> Color {
+        switch severity {
+        case .info: return .blue
+        case .warning: return .orange
+        case .critical: return .red
+        }
+    }
+}
+
+private struct AggregationsSection: View {
+    let aggregations: [UsageAggregationMetric]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(LocalizedStringResource("aggregations.title", bundle: .module, table: "Menu"))
+                .font(.app(.satoshiRegular, size: 12))
+                .foregroundStyle(.secondary)
+            ForEach(aggregations) { metric in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(metric.preset.displayName)
+                        .font(.app(.satoshiMedium, size: 12))
+                    ForEach(metric.rows.suffix(3)) { row in
+                        HStack {
+                            Text(row.startDate, style: .time)
+                                .font(.app(.satoshiRegular, size: 11))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("$\(Double(row.spendCents) / 100.0, specifier: \"%.2f\")")
+                                .font(.app(.satoshiMedium, size: 11))
+                        }
+                    }
+                }
+                .padding(10)
+                .background(Color.primary.opacity(0.03))
+                .cornerRadius(10)
+            }
+        }
+        .maxFrame(true, alignment: .leading)
+    }
+}
+
+private struct LiveUsageSection: View {
+    let metrics: LiveUsageMetrics
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(LocalizedStringResource("live.title", bundle: .module, table: "Menu"))
+                .font(.app(.satoshiRegular, size: 12))
+                .foregroundStyle(.secondary)
+            Sparkline(points: metrics.sparklinePoints)
+                .frame(height: 40)
+            Text("Burn: $\(metrics.burnRateCentsPerHour / 100.0, specifier: \"%.2f\") / hr")
+                .font(.app(.satoshiMedium, size: 12))
+        }
+        .maxFrame(true, alignment: .leading)
+    }
+}
+
+private struct Sparkline: View {
+    let points: [Double]
+
+    func normalizedPoints(in size: CGSize) -> [CGPoint] {
+        guard let max = points.max(), let min = points.min(), max != min else {
+            return points.enumerated().map { index, _ in
+                CGPoint(x: size.width * Double(index) / Double(max(points.count - 1, 1)), y: size.height / 2)
+            }
+        }
+        return points.enumerated().map { index, value in
+            let x = size.width * Double(index) / Double(max(points.count - 1, 1))
+            let normalized = (value - min) / (max - min)
+            let y = size.height * (1 - normalized)
+            return CGPoint(x: x, y: y)
+        }
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let pts = normalizedPoints(in: proxy.size)
+            Path { path in
+                guard let first = pts.first else { return }
+                path.move(to: first)
+                for point in pts.dropFirst() {
+                    path.addLine(to: point)
+                }
+            }
+            .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+        }
     }
 }

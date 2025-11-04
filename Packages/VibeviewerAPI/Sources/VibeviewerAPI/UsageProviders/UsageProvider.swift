@@ -6,11 +6,17 @@ public protocol UsageProvider: Sendable {
     func fetchTotals(dateRange: DateInterval) async throws -> ProviderUsageTotal?
 }
 
+public protocol ProviderCredentialResolving: Sendable {
+    func secret(for reference: SecureCredentialReference) throws -> String?
+}
+
 public struct UsageProviderConfiguration {
     public let settings: AppSettings.ProviderSettings
+    public let credentialResolver: ProviderCredentialResolving
 
-    public init(settings: AppSettings.ProviderSettings) {
+    public init(settings: AppSettings.ProviderSettings, credentialResolver: ProviderCredentialResolving) {
         self.settings = settings
+        self.credentialResolver = credentialResolver
     }
 }
 
@@ -57,21 +63,41 @@ public struct MultiProviderUsageAggregator: Sendable {
     public func fetchTotals(dateRange: DateInterval) async -> [ProviderUsageTotal] {
         var providers: [any UsageProvider] = []
         if configuration.settings.enableOpenAI,
-           configuration.settings.openAIAPIKey.isEmpty == false
+           let reference = configuration.settings.openAIKeyReference,
+           let apiKey = try? configuration.credentialResolver.secret(for: reference),
+           let apiKey,
+           apiKey.isEmpty == false
         {
-            providers.append(OpenAIUsageProvider(settings: configuration.settings))
+            providers.append(
+                OpenAIUsageProvider(
+                    apiKey: apiKey,
+                    organization: configuration.settings.openAIOrganization
+                )
+            )
         }
         if configuration.settings.enableAnthropic,
-           configuration.settings.anthropicAPIKey.isEmpty == false
+           let reference = configuration.settings.anthropicKeyReference,
+           let apiKey = try? configuration.credentialResolver.secret(for: reference),
+           let apiKey,
+           apiKey.isEmpty == false
         {
-            providers.append(AnthropicUsageProvider(settings: configuration.settings))
+            providers.append(AnthropicUsageProvider(apiKey: apiKey))
         }
         if configuration.settings.enableGoogleGemini,
-           configuration.settings.googleServiceAccountJSON.isEmpty == false,
            configuration.settings.googleProjectID.isEmpty == false,
-           configuration.settings.googleBillingAccountID.isEmpty == false
+           configuration.settings.googleBillingAccountID.isEmpty == false,
+           let reference = configuration.settings.googleServiceAccountReference,
+           let json = try? configuration.credentialResolver.secret(for: reference),
+           let json,
+           json.isEmpty == false
         {
-            providers.append(GoogleGeminiUsageProvider(settings: configuration.settings))
+            providers.append(
+                GoogleGeminiUsageProvider(
+                    serviceAccountJSON: json,
+                    projectID: configuration.settings.googleProjectID,
+                    billingAccountID: configuration.settings.googleBillingAccountID
+                )
+            )
         }
 
         if providers.isEmpty { return [] }

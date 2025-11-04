@@ -2,19 +2,17 @@ import Foundation
 import VibeviewerModel
 
 struct AnthropicUsageProvider: UsageProvider {
-    let settings: AppSettings.ProviderSettings
+    let apiKey: String
     let session: URLSession
 
-    init(settings: AppSettings.ProviderSettings, session: URLSession = .shared) {
-        self.settings = settings
+    init(apiKey: String, session: URLSession = .shared) {
+        self.apiKey = apiKey
         self.session = session
     }
 
     var kind: UsageProviderKind { .anthropic }
 
     func fetchTotals(dateRange: DateInterval) async throws -> ProviderUsageTotal? {
-        guard settings.anthropicAPIKey.isEmpty == false else { return nil }
-
         var components = URLComponents(string: "https://api.anthropic.com/v1/usage")!
         components.queryItems = [
             .init(name: "start_time", value: ISO8601DateFormatter.usage.string(from: dateRange.start)),
@@ -23,7 +21,7 @@ struct AnthropicUsageProvider: UsageProvider {
 
         var request = URLRequest(url: components.url!)
         request.httpMethod = "GET"
-        request.setValue(settings.anthropicAPIKey, forHTTPHeaderField: "x-api-key")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
 
         let (data, response) = try await session.data(for: request)

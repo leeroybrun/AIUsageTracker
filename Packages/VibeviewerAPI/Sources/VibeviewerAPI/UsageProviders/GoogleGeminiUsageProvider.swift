@@ -5,20 +5,22 @@ import VibeviewerModel
 import Security
 
 struct GoogleGeminiUsageProvider: UsageProvider {
-    let settings: AppSettings.ProviderSettings
+    let serviceAccountJSON: String
+    let projectID: String
+    let billingAccountID: String
     let session: URLSession
 
-    init(settings: AppSettings.ProviderSettings, session: URLSession = .shared) {
-        self.settings = settings
+    init(serviceAccountJSON: String, projectID: String, billingAccountID: String, session: URLSession = .shared) {
+        self.serviceAccountJSON = serviceAccountJSON
+        self.projectID = projectID
+        self.billingAccountID = billingAccountID
         self.session = session
     }
 
     var kind: UsageProviderKind { .googleGemini }
 
     func fetchTotals(dateRange: DateInterval) async throws -> ProviderUsageTotal? {
-        guard settings.googleServiceAccountJSON.isEmpty == false,
-              let data = settings.googleServiceAccountJSON.data(using: .utf8)
-        else {
+        guard let data = serviceAccountJSON.data(using: .utf8) else {
             return nil
         }
 
@@ -27,11 +29,11 @@ struct GoogleGeminiUsageProvider: UsageProvider {
         let credentials = try credentialsDecoder.decode(GoogleServiceAccount.self, from: data)
         let accessToken = try await requestAccessToken(credentials: credentials)
         let requestBody = GoogleBillingReportRequest(
-            filter: "project=\"projects/\(settings.googleProjectID)\"",
+            filter: "project=\"projects/\(projectID)\"",
             dateRange: .init(startDate: dateRange.start, endDate: dateRange.end)
         )
         let bodyData = try JSONEncoder().encode(requestBody)
-        let url = URL(string: "https://cloudbilling.googleapis.com/v1beta/billingAccounts/\(settings.googleBillingAccountID):reports:query")!
+        let url = URL(string: "https://cloudbilling.googleapis.com/v1beta/billingAccounts/\(billingAccountID):reports:query")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = bodyData
@@ -221,11 +223,7 @@ private extension GoogleBillingReportResponse.MoneyValue {
 #else
 
 struct GoogleGeminiUsageProvider: UsageProvider {
-    let settings: AppSettings.ProviderSettings
-
-    init(settings: AppSettings.ProviderSettings, session: URLSession = .shared) {
-        self.settings = settings
-    }
+    init(serviceAccountJSON: String, projectID: String, billingAccountID: String, session: URLSession = .shared) {}
 
     var kind: UsageProviderKind { .googleGemini }
 

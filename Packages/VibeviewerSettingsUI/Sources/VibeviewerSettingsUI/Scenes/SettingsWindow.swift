@@ -12,6 +12,7 @@ public final class SettingsWindowManager {
         credentials: DefaultCursorStorageService.loadCredentialsSync(),
         snapshot: DefaultCursorStorageService.loadDashboardSnapshotSync()
     )
+    public var secureStore: any SecureCredentialStore = DefaultSecureCredentialStore()
 
     public func show() {
         if let controller {
@@ -20,7 +21,8 @@ public final class SettingsWindowManager {
         }
         let vc = NSHostingController(rootView: SettingsView()
             .environment(self.appSettings)
-            .environment(self.appSession))
+            .environment(self.appSession)
+            .environment(\.secureCredentialStore, self.secureStore))
         let window = NSWindow(contentViewController: vc)
         window.title = "Settings"
         window.setContentSize(NSSize(width: 320, height: 240))

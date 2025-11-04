@@ -23,6 +23,12 @@ public class DashboardSnapshot: Codable, Equatable {
     /// 用户分析数据
     public let userAnalytics: UserAnalytics?
     public let providerTotals: [ProviderUsageTotal]
+    public let aggregations: [UsageAggregationMetric]
+    public let forecastWarnings: [ForecastWarning]
+    public let personalization: PersonalizationProfile?
+    public let liveMetrics: LiveUsageMetrics?
+    public let developerExport: DeveloperExport?
+    public let localizedSpendDisplay: String?
 
     public init(
         email: String,
@@ -35,7 +41,13 @@ public class DashboardSnapshot: Codable, Equatable {
         usageSummary: UsageSummary? = nil,
         freeUsageCents: Int = 0,
         userAnalytics: UserAnalytics? = nil,
-        providerTotals: [ProviderUsageTotal] = []
+        providerTotals: [ProviderUsageTotal] = [],
+        aggregations: [UsageAggregationMetric] = [],
+        forecastWarnings: [ForecastWarning] = [],
+        personalization: PersonalizationProfile? = nil,
+        liveMetrics: LiveUsageMetrics? = nil,
+        developerExport: DeveloperExport? = nil,
+        localizedSpendDisplay: String? = nil
     ) {
         self.email = email
         self.totalRequestsAllModels = totalRequestsAllModels
@@ -48,6 +60,12 @@ public class DashboardSnapshot: Codable, Equatable {
         self.freeUsageCents = freeUsageCents
         self.userAnalytics = userAnalytics
         self.providerTotals = providerTotals
+        self.aggregations = aggregations
+        self.forecastWarnings = forecastWarnings
+        self.personalization = personalization
+        self.liveMetrics = liveMetrics
+        self.developerExport = developerExport
+        self.localizedSpendDisplay = localizedSpendDisplay
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -62,6 +80,12 @@ public class DashboardSnapshot: Codable, Equatable {
         case freeUsageCents
         case userAnalytics
         case providerTotals
+        case aggregations
+        case forecastWarnings
+        case personalization
+        case liveMetrics
+        case developerExport
+        case localizedSpendDisplay
     }
 
     public required init(from decoder: Decoder) throws {
@@ -77,6 +101,12 @@ public class DashboardSnapshot: Codable, Equatable {
         self.freeUsageCents = (try? container.decode(Int.self, forKey: .freeUsageCents)) ?? 0
         self.userAnalytics = try? container.decode(UserAnalytics.self, forKey: .userAnalytics)
         self.providerTotals = (try? container.decode([ProviderUsageTotal].self, forKey: .providerTotals)) ?? []
+        self.aggregations = (try? container.decode([UsageAggregationMetric].self, forKey: .aggregations)) ?? []
+        self.forecastWarnings = (try? container.decode([ForecastWarning].self, forKey: .forecastWarnings)) ?? []
+        self.personalization = try? container.decode(PersonalizationProfile.self, forKey: .personalization)
+        self.liveMetrics = try? container.decode(LiveUsageMetrics.self, forKey: .liveMetrics)
+        self.developerExport = try? container.decode(DeveloperExport.self, forKey: .developerExport)
+        self.localizedSpendDisplay = try? container.decode(String.self, forKey: .localizedSpendDisplay)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -99,6 +129,24 @@ public class DashboardSnapshot: Codable, Equatable {
         }
         if !self.providerTotals.isEmpty {
             try container.encode(self.providerTotals, forKey: .providerTotals)
+        }
+        if !self.aggregations.isEmpty {
+            try container.encode(self.aggregations, forKey: .aggregations)
+        }
+        if !self.forecastWarnings.isEmpty {
+            try container.encode(self.forecastWarnings, forKey: .forecastWarnings)
+        }
+        if let personalization {
+            try container.encode(personalization, forKey: .personalization)
+        }
+        if let liveMetrics {
+            try container.encode(liveMetrics, forKey: .liveMetrics)
+        }
+        if let developerExport {
+            try container.encode(developerExport, forKey: .developerExport)
+        }
+        if let localizedSpendDisplay {
+            try container.encode(localizedSpendDisplay, forKey: .localizedSpendDisplay)
         }
     }
 
@@ -123,6 +171,12 @@ public class DashboardSnapshot: Codable, Equatable {
         lhs.usageSummary == rhs.usageSummary &&
         lhs.freeUsageCents == rhs.freeUsageCents &&
         lhs.userAnalytics == rhs.userAnalytics &&
-        lhs.providerTotals == rhs.providerTotals
+        lhs.providerTotals == rhs.providerTotals &&
+        lhs.aggregations == rhs.aggregations &&
+        lhs.forecastWarnings == rhs.forecastWarnings &&
+        lhs.personalization == rhs.personalization &&
+        lhs.liveMetrics == rhs.liveMetrics &&
+        lhs.developerExport == rhs.developerExport &&
+        lhs.localizedSpendDisplay == rhs.localizedSpendDisplay
     }
 }

@@ -24,12 +24,15 @@ An open-source macOS menu bar app that surfaces workspace/team usage and spend a
 - **Power-aware refresh**: Smart refresh strategy reacting to screen power/activity state.
 - **Modular architecture**: One-way dependencies Core ← Model ← API ← Feature; DTO→Domain mapping lives in API only.
 - **Multi-provider tracking**: Aggregate Cursor, OpenAI, Anthropic, and Google Gemini usage with per-provider spend and request totals.
+- **Incremental intelligence**: Live monitoring with sparklines, predictive spend warnings, localized UI strings (English/Spanish), and automation hooks (status exports, WebSocket streaming, MCP-friendly status line).
+- **Advanced controls**: Configurable proxy ingestion server, Keychain-backed credential automation, diagnostics logging with rotation, and JSON-based advanced configuration with schema validation.
 - **Sharing components**: Built-in fonts and assets to generate shareable views.
 
 ### Notes
 - Currently developed and tested against **team accounts** only. Individual/free accounts are not yet verified — contributions for compatibility are welcome.
 - Thanks to the modular layered design, although Cursor is the present data source, other similar apps can be integrated by implementing the corresponding data-layer interfaces — PRs are welcome.
 - The app currently has no logo — designers are welcome to contribute one.
+- Provider API keys and service-account JSON are encrypted in the macOS Keychain; clearing a provider in Settings removes the stored secret from disk.
 
 > Brand and data sources are for demonstration. The UI never sees concrete networking implementations — only service protocols and default implementations are exposed.
 

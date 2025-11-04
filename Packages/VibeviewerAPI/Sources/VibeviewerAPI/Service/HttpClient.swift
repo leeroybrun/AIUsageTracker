@@ -15,7 +15,9 @@ enum HttpClient {
 
     private static func createProvider() -> MoyaProvider<MultiTarget> {
         var plugins: [PluginType] = []
+#if DEBUG
         plugins.append(SimpleNetworkLoggerPlugin())
+#endif
         plugins.append(RequestErrorHandlingPlugin())
 
         // 创建完全不验证 SSL 的配置
