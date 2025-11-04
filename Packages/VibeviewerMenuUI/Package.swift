@@ -29,6 +29,9 @@ let package = Package(
         "VibeviewerLoginUI",
         "VibeviewerSettingsUI",
         "VibeviewerShareUI"
+      ],
+      resources: [
+        .process("Resources")
       ]
     ),
     .testTarget(name: "VibeviewerMenuUITests", dependencies: ["VibeviewerMenuUI"]),

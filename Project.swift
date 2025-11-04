@@ -1,10 +1,10 @@
 import ProjectDescription
 
-let workspaceName = "Vibeviewer"
+let workspaceName = "AIUsageTracker"
 
 let project = Project(
     name: workspaceName,
-    organizationName: "Vibeviewer",
+    organizationName: "AIUsageTracker",
     options: .options(
         developmentRegion: "en",
         disableBundleAccessors: false,
@@ -30,7 +30,7 @@ let project = Project(
             name: workspaceName,
             destinations: .macOS,
             product: .app,
-            bundleId: "com.magicgroot.vibeviewer",
+            bundleId: "com.magicgroot.aiusagetracker",
             deploymentTargets: .macOS("14.0"),
             infoPlist: .extendingDefault(with: [
                 "LSUIElement": .boolean(true),
@@ -38,10 +38,10 @@ let project = Project(
                 "LSApplicationCategoryType": .string("public.app-category.productivity"),
                 "UIAppFonts": .array([.string("Satoshi-Regular.ttf"), .string("Satoshi-Medium.ttf"), .string("Satoshi-Bold.ttf"), .string("Satoshi-Italic.ttf")]),
             ]),
-            sources: ["Vibeviewer/**"],
+            sources: ["AIUsageTracker/**"],
             resources: [
-                "Vibeviewer/Assets.xcassets",
-                "Vibeviewer/Preview Content/**",
+                "AIUsageTracker/Assets.xcassets",
+                "AIUsageTracker/Preview Content/**",
             ],
             dependencies: [
                 .package(product: "VibeviewerAPI"),

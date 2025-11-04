@@ -1,18 +1,20 @@
 import Foundation
-import ServiceManagement
 
 public protocol LaunchAtLoginService {
     var isEnabled: Bool { get }
     func setEnabled(_ enabled: Bool) -> Bool
 }
 
+#if canImport(ServiceManagement)
+import ServiceManagement
+
 public final class DefaultLaunchAtLoginService: LaunchAtLoginService {
     public init() {}
-    
+
     public var isEnabled: Bool {
         SMAppService.mainApp.status == .enabled
     }
-    
+
     public func setEnabled(_ enabled: Bool) -> Bool {
         do {
             if enabled {
@@ -23,14 +25,26 @@ public final class DefaultLaunchAtLoginService: LaunchAtLoginService {
                 return true
             } else {
                 if SMAppService.mainApp.status != .enabled {
-                    return true  
+                    return true
                 }
                 try SMAppService.mainApp.unregister()
                 return true
             }
         } catch {
-            print("Failed to \(enabled ? "enable" : "disable") launch at login: \(error)")
+            let action = enabled ? "enable" : "disable"
+            print("Failed to \(action) launch at login: \(error)")
             return false
         }
     }
 }
+#else
+
+public final class DefaultLaunchAtLoginService: LaunchAtLoginService {
+    public init() {}
+
+    public var isEnabled: Bool { false }
+
+    public func setEnabled(_ enabled: Bool) -> Bool { false }
+}
+
+#endif

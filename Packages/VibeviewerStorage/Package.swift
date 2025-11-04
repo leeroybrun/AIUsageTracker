@@ -10,13 +10,17 @@ let package = Package(
         .library(name: "VibeviewerStorage", targets: ["VibeviewerStorage"])
     ],
     dependencies: [
-        .package(path: "../VibeviewerModel")
+        .package(path: "../VibeviewerModel"),
+        .package(path: "../VibeviewerAPI"),
+        .package(path: "../VibeviewerCore")
     ],
     targets: [
         .target(
             name: "VibeviewerStorage",
             dependencies: [
-                .product(name: "VibeviewerModel", package: "VibeviewerModel")
+                .product(name: "VibeviewerModel", package: "VibeviewerModel"),
+                .product(name: "VibeviewerAPI", package: "VibeviewerAPI"),
+                .product(name: "VibeviewerCore", package: "VibeviewerCore")
             ]
         ),
         .testTarget(

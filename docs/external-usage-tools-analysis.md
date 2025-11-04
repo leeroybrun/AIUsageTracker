@@ -1,0 +1,61 @@
+# External Usage Tracker Review
+
+## Scope & Methodology
+- Cloned [ryoppippi/ccusage](https://github.com/ryoppippi/ccusage), [Maciek-roboblog/Claude-Code-Usage-Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor), [steipete/VibeMeter](https://github.com/steipete/VibeMeter), [HamedMP/CursorLens](https://github.com/HamedMP/CursorLens), and [Dwtexe/cursor-stats](https://github.com/Dwtexe/cursor-stats) locally for source-level inspection.
+- Reviewed READMEs, configuration samples, and key implementation modules to identify differentiating features that could augment AIUsageTracker.
+- Focused on ideas that expand analytics depth, improve live monitoring, strengthen UX, or streamline integrations rather than CLI-specific or VS Code–specific mechanics that do not translate directly to our macOS menu-bar context.
+
+## ccusage Highlights
+- **High-performance log ingestion** – The `blocks --live` flow incrementally parses recent JSONL rows, tracks deduplication hashes, and prunes cached entries older than 24 hours to keep memory bounded while polling on short intervals (`apps/ccusage/src/_live-monitor.ts`). This suggests we could add incremental refreshers for Cursor log archives without re-downloading the full history on every sync.
+- **Pricing fetcher with offline mode** – `PricingFetcher` loads remote pricing tables but supports cached/offline fallbacks and per-model overrides (`apps/ccusage/src/_pricing-fetcher.ts`). Mirroring this would let us expose an “offline pricing” toggle for air-gapped setups and provide custom overrides when vendors revise prices before official docs update.
+- **Rich reporting dimensions** – Daily, monthly, weekly, session, and 5-hour billing block aggregations each share a common data loader but tailor grouping logic (`apps/ccusage/src/_daily-grouping.ts`, `_session-blocks.ts`, `commands/weekly.ts`). Implementing analogous aggregation presets inside AIUsageTracker would let users pivot between time granularities without exporting data.
+- **Live monitoring UX** – The live dashboard recalculates burn rate projections, highlights active 5-hour windows, and streams updates without clearing terminal layout by using a dedicated renderer (`apps/ccusage/src/_live-rendering.ts`). We could adapt this into a macOS menu popover “live mode” that auto-refreshes usage stats every few seconds with trend sparklines.
+- **Status line & integrations** – A compact statusline command produces condensed output for prompt/tool integrations, while an MCP server package exposes the analytics via Model Context Protocol (`apps/ccusage/src/commands/statusline.ts`, `apps/mcp/src`). Similar endpoints in our app (menu bar text variants, optional MCP/WebSocket bridge) could let developers feed usage snapshots into IDEs or automations.
+- **Configurable defaults via JSON schema** – User-level configuration merges global defaults with per-command overrides and includes a JSON schema for IDE auto-complete (`ccusage.example.json`, `apps/ccusage/config-schema.json`). Surfacing an editable settings file or advanced preferences pane would help power users script recurring filters (e.g., default project aliases, preferred timezone/locale).
+
+## Claude-Code-Usage-Monitor Highlights
+- **Modular monitoring orchestrator** – A dedicated orchestrator coordinates data fetching, caching, threading, and session callbacks while allowing pluggable update consumers (`src/claude_monitor/monitoring/orchestrator.py`). Translating this separation to AIUsageTracker could make future provider additions (or background refresh timers) cleaner and more testable.
+- **Predictive analytics** – The project computes personalized token ceilings using a P90 quantile calculator with caching (`src/claude_monitor/core/p90_calculator.py`) and blends them with plan metadata (`core/plans.py`). Adding percentile-based projections would let us warn users before they hit daily or 5-hour limits across providers.
+- **Plan & theme auto-detection** – Runtime heuristics infer the user’s Claude plan, timezone, time format, and terminal background to auto-select palettes and thresholds (`core/plans.py`, `ui/theme_manager.py`, `utils/timezone.py`). Implementing automatic timezone detection plus dark/light menu theming could reduce manual setup in AIUsageTracker.
+- **Alerting pipeline** – Session monitors emit structured events for limit approaches, gap detection, and session transitions, enabling multi-level alerts (`monitoring/session_monitor.py`). We could reuse the idea for macOS notifications or menu bar badges when spend crosses budgets.
+- **Extensive configuration & logging** – Command-line flags feed into Pydantic models with validation, persisted settings, optional Sentry reporting, and rotating file logs (`core/settings.py`, `utils/logging.py`). Bringing structured logging and validation to our settings would harden the app for enterprise deployments.
+- **Testing discipline** – 100+ tests cover data loaders, predictors, and UI rendering paths (`src/tests`). While a macOS app has different test constraints, we can adopt their pattern of isolating analytics logic in pure Swift modules with deterministic fixtures to improve coverage.
+
+## VibeMeter Highlights
+- **End-to-end macOS polish** – Ships a Swift 6 menu bar app with animated gauge icon, right-click menus, and dark-mode aware popovers, demonstrating how to elevate our own menu UI beyond basic SwiftUI lists (`VibeMeter/Sources/App/Menu` and `docs/spec.md`).
+- **Multi-provider orchestration** – Implements provider registries, login managers, and a central orchestrator that coordinates Cursor and Claude simultaneously with actor-based concurrency and refresh timers, providing architecture references as we scale provider count (`docs/spec.md`, `VibeMeter/Sources/VibeMeterKit/MultiProvider`).
+- **Currency & notification system** – Maintains exchange-rate actors, customizable spending limits, and alert scheduling with macOS notifications and badge states (`docs/spec.md`, `VibeMeter/Sources/VibeMeterKit/Settings`).
+- **Secure login flows** – Uses WKWebView-based authentication and Keychain-backed token storage for each provider, reinforcing security practices similar to our recent hardening (`docs/spec.md`, `VibeMeter/Sources/VibeMeterKit/Auth`).
+- **Comprehensive documentation & tooling** – Provides scripts for formatting, linting, code coverage with minimum thresholds, notarized auto-updates, and release pipelines (`README.md`, `scripts/`). Borrowing these workflows can improve our release readiness.
+
+## CursorLens Highlights
+- **Proxy-based observability** – Runs as a reverse proxy that Cursor points to, logging every request/response across providers (OpenAI, Anthropic, Cohere, Mistral, Groq, Ollama) before forwarding, enabling 100% capture of IDE interactions (`src/app/api`, `src/app/actions`).
+- **Database-backed analytics** – Stores logs in PostgreSQL via Prisma, exposing REST and dashboard views with filters by provider, date range, and cost, giving ideas for long-term history beyond our on-disk snapshots (`src/lib/prisma.ts`, `src/app/api/logs/route.ts`).
+- **Configurable provider presets** – Offers UI to manage multiple model configs, set defaults, and toggle prompt caching for Anthropic via `antropicCached` settings (`src/app/configuration`).
+- **Prompt cache integration** – Implements Anthropic prompt caching to reduce spend by caching context messages with TTL handling (`src/lib/model-config.ts`, release notes 0.1.2).
+- **Full-stack web dashboard** – Provides React-based charts, live monitoring components, and stats pages we can mirror for richer desktop popovers or optional web exports (`src/components`, `public/cl-stats.jpeg`).
+
+## cursor-stats Highlights
+- **Cursor extension ergonomics** – Lives inside Cursor/VS Code as an extension offering command palette actions, configurable status bar text, and progress bars, illustrating in-IDE affordances we might emulate through menu bar quick actions (`src/extension.ts`, `README.md`).
+- **Automated credential extraction** – Reads Cursor’s `state.vscdb` sqlite database, decodes JWT tokens, and constructs session cookies without manual copy/paste (`src/services/database.ts`). We could add an assistant utility guiding users through pulling session tokens automatically.
+- **Usage policy tooling** – Exposes commands to check/adjust usage-based pricing hard limits, evaluate premium request quotas, and track mid-month invoices by replaying the same endpoints we call (`src/services/api.ts`). Integrating similar toggles in AIUsageTracker settings would let users manage spend controls directly.
+- **Localization and customization** – Supports multi-language UI strings, multi-currency conversions, and customizable alert thresholds, showing how to internationalize our experience (`src/locales`, `src/utils/i18n.ts`).
+- **Diagnostics workflow** – Generates diagnostic reports, logs, and update checks to help debug failures (`src/handlers/report.ts`, `src/services/github.ts`). Shipping a comparable diagnostics panel would streamline support.
+
+## Comparative Assessment
+- **All-in-one replacement?** None of the reviewed tools cover our entire goal set: VibeMeter is the closest macOS analog but currently supports only Cursor + Claude (no OpenAI/Gemini/Claude-Code usage aggregation) and focuses on spend rather than IDE-level logging. CursorLens excels at proxy logging and analytics but requires rerouting traffic through a web service and lacks native menu bar presence. cursor-stats is bound to the Cursor editor with rich controls but does not ingest external providers or operate outside VS Code.
+- **Feature inspiration** – VibeMeter’s polished macOS UX, notification system, and Keychain auth can guide our UI/UX refinement; CursorLens’ proxy architecture and database-backed dashboards inform advanced analytics or optional server components; cursor-stats’ credential automation, policy management, and localization are prime candidates for integration into AIUsageTracker’s settings and automation roadmap.
+- **Strategic blend** – By combining VibeMeter’s native ergonomics with CursorLens’ deep logging capabilities and cursor-stats’ spend controls, AIUsageTracker can deliver a uniquely comprehensive desktop app without conceding security or requiring IDE plugins.
+
+## Integration Opportunities for AIUsageTracker
+1. **Incremental data pipelines** – Port ccusage’s incremental JSONL parsing concepts to Cursor log polling so refreshes only process new entries, enabling near-real-time updates with minimal bandwidth.
+2. **Advanced aggregation presets** – Offer saved dashboards for 5-hour blocks, weekly trends, and per-session breakdowns inspired by ccusage commands to surface more insights without exporting data.
+3. **Predictive warnings** – Introduce percentile-based ceiling predictions (per provider) and burn-rate alerts modeled after Claude-Code-Usage-Monitor’s P90 calculator and monitoring events.
+4. **Automated personalization** – Detect timezone, locale, and dark/light mode automatically, optionally adjusting thresholds based on recognized subscription tiers similar to Claude monitor’s plan heuristics.
+5. **Developer-friendly outputs** – Ship optional compact menu bar strings, local status files, or MCP/WebSocket endpoints so other tools can consume our unified usage metrics, echoing ccusage’s statusline and MCP support.
+6. **Config & logging improvements** – Provide an “advanced config” JSON with schema hints plus structured logging hooks to integrate with observability stacks, borrowing validation strategies from Claude monitor.
+7. **Native UX polish & notifications** – Adapt VibeMeter’s animated gauge, dark-mode aware popovers, and alert thresholds to elevate the menu bar experience.
+8. **Proxy or import options** – Offer an optional proxy/log ingestion mode inspired by CursorLens for teams that want full request archives, storing data locally with user-controlled retention.
+9. **Credential automation & localization** – Add cursor-stats–style helpers to harvest Cursor tokens (with consent) and expand localization/currency options for global audiences.
+
+Adopting these patterns can help AIUsageTracker move beyond basic aggregation toward predictive, customizable, and integration-friendly analytics comparable to the leading community tools.

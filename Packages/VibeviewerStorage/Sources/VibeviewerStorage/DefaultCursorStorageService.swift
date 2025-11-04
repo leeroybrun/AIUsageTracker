@@ -9,24 +9,37 @@ public enum CursorStorageKeys {
 
 public struct DefaultCursorStorageService: CursorStorageService, CursorStorageSyncHelpers {
     private let defaults: UserDefaults
+    private let secureStore: any SecureCredentialStore
 
-    public init(userDefaults: UserDefaults = .standard) {
+    public init(userDefaults: UserDefaults = .standard, secureStore: any SecureCredentialStore = DefaultSecureCredentialStore()) {
         self.defaults = userDefaults
+        self.secureStore = secureStore
     }
 
     // MARK: - Credentials
 
     public func saveCredentials(_ me: Credentials) async throws {
         let data = try JSONEncoder().encode(me)
-        self.defaults.set(data, forKey: CursorStorageKeys.credentials)
+        try self.secureStore.setSecret(data, for: .cursorCredentials)
+        self.defaults.removeObject(forKey: CursorStorageKeys.credentials)
     }
 
     public func loadCredentials() async -> Credentials? {
-        guard let data = self.defaults.data(forKey: CursorStorageKeys.credentials) else { return nil }
-        return try? JSONDecoder().decode(Credentials.self, from: data)
+        if let data = try? self.secureStore.secret(for: .cursorCredentials) {
+            return try? JSONDecoder().decode(Credentials.self, from: data)
+        }
+        if let legacy = self.defaults.data(forKey: CursorStorageKeys.credentials),
+           let decoded = try? JSONDecoder().decode(Credentials.self, from: legacy)
+        {
+            try? self.secureStore.setSecret(legacy, for: .cursorCredentials)
+            self.defaults.removeObject(forKey: CursorStorageKeys.credentials)
+            return decoded
+        }
+        return nil
     }
 
     public func clearCredentials() async {
+        try? self.secureStore.deleteSecret(for: .cursorCredentials)
         self.defaults.removeObject(forKey: CursorStorageKeys.credentials)
     }
 
@@ -54,12 +67,25 @@ public struct DefaultCursorStorageService: CursorStorageService, CursorStorageSy
     }
 
     public func loadSettings() async -> AppSettings {
+        var settings: AppSettings
         if let data = self.defaults.data(forKey: CursorStorageKeys.settings),
            let decoded = try? JSONDecoder().decode(AppSettings.self, from: data)
         {
-            return decoded
+            settings = decoded
+        } else {
+            settings = AppSettings()
         }
-        return AppSettings()
+        let migrated = migrateProviderSecretsIfNeeded(settings)
+        settings = migrated
+        if let config = AdvancedConfigManager.shared.loadConfiguration() {
+            var merged = settings
+            config.merged(into: &merged)
+            settings = merged
+        }
+        if settings != migrated {
+            try? await saveSettings(settings)
+        }
+        return settings
     }
     
     // MARK: - AppSession Management
@@ -67,14 +93,27 @@ public struct DefaultCursorStorageService: CursorStorageService, CursorStorageSy
     public func clearAppSession() async {
         await clearCredentials()
         await clearDashboardSnapshot()
+        try? self.secureStore.deleteSecret(for: .openAIAPIKey)
+        try? self.secureStore.deleteSecret(for: .anthropicAPIKey)
+        try? self.secureStore.deleteSecret(for: .googleServiceAccount)
     }
 
     // MARK: - Sync Helpers
 
     public static func loadCredentialsSync() -> Credentials? {
+        let store = DefaultSecureCredentialStore()
+        if let data = try? store.secret(for: .cursorCredentials) {
+            return try? JSONDecoder().decode(Credentials.self, from: data)
+        }
         let defaults = UserDefaults.standard
-        guard let data = defaults.data(forKey: CursorStorageKeys.credentials) else { return nil }
-        return try? JSONDecoder().decode(Credentials.self, from: data)
+        if let legacy = defaults.data(forKey: CursorStorageKeys.credentials),
+           let decoded = try? JSONDecoder().decode(Credentials.self, from: legacy)
+        {
+            try? store.setSecret(legacy, for: .cursorCredentials)
+            defaults.removeObject(forKey: CursorStorageKeys.credentials)
+            return decoded
+        }
+        return nil
     }
 
     public static func loadDashboardSnapshotSync() -> DashboardSnapshot? {
@@ -85,7 +124,57 @@ public struct DefaultCursorStorageService: CursorStorageService, CursorStorageSy
 
     public static func loadSettingsSync() -> AppSettings {
         let defaults = UserDefaults.standard
-        guard let data = defaults.data(forKey: CursorStorageKeys.settings) else { return AppSettings() }
-        return (try? JSONDecoder().decode(AppSettings.self, from: data)) ?? AppSettings()
+        let store = DefaultSecureCredentialStore()
+        var decoded: AppSettings
+        if let data = defaults.data(forKey: CursorStorageKeys.settings),
+           let settings = try? JSONDecoder().decode(AppSettings.self, from: data)
+        {
+            decoded = settings
+        } else {
+            decoded = AppSettings()
+        }
+        let service = DefaultCursorStorageService(userDefaults: defaults, secureStore: store)
+        let migrated = service.migrateProviderSecretsIfNeeded(decoded)
+        decoded = migrated
+        if let config = AdvancedConfigManager.shared.loadConfiguration() {
+            var merged = decoded
+            config.merged(into: &merged)
+            decoded = merged
+        }
+        if migrated != decoded {
+            let encoder = JSONEncoder()
+            if let data = try? encoder.encode(decoded) {
+                defaults.set(data, forKey: CursorStorageKeys.settings)
+            }
+        }
+        return decoded
+    }
+
+    private func migrateProviderSecretsIfNeeded(_ settings: AppSettings) -> AppSettings {
+        var updated = settings
+        guard let migration = updated.providerSettings.pendingSecretMigration else {
+            return updated
+        }
+
+        if let value = migration.openAIAPIKey, value.isEmpty == false,
+           let data = value.data(using: .utf8)
+        {
+            try? self.secureStore.setSecret(data, for: .openAIAPIKey)
+            updated.providerSettings.openAIKeyReference = .openAIAPIKey
+        }
+        if let value = migration.anthropicAPIKey, value.isEmpty == false,
+           let data = value.data(using: .utf8)
+        {
+            try? self.secureStore.setSecret(data, for: .anthropicAPIKey)
+            updated.providerSettings.anthropicKeyReference = .anthropicAPIKey
+        }
+        if let value = migration.googleServiceAccountJSON, value.isEmpty == false,
+           let data = value.data(using: .utf8)
+        {
+            try? self.secureStore.setSecret(data, for: .googleServiceAccount)
+            updated.providerSettings.googleServiceAccountReference = .googleServiceAccount
+        }
+        updated.providerSettings.pendingSecretMigration = nil
+        return updated
     }
 }

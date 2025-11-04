@@ -2,11 +2,11 @@
 set -e
 
 # Configuration
-APP_NAME="Vibeviewer"
+APP_NAME="AIUsageTracker"
 VERSION="1.1.5"
 CONFIGURATION="Release"
-SCHEME="Vibeviewer"
-WORKSPACE="Vibeviewer.xcworkspace"
+SCHEME="AIUsageTracker"
+WORKSPACE="AIUsageTracker.xcworkspace"
 BUILD_DIR="build"
 TEMP_DIR="temp_dmg"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"

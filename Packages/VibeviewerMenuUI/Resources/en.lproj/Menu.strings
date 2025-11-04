@@ -1,0 +1,8 @@
+"settings.title" = "Settings";
+"login.button" = "Login to Cursor";
+"usage.total" = "Total Credits Usage";
+"providers.title" = "External Provider Usage";
+"alerts.title" = "Alerts";
+"aggregations.title" = "Usage Breakdowns";
+"live.title" = "Live Usage";
+"live.toggle" = "Live Monitoring";
