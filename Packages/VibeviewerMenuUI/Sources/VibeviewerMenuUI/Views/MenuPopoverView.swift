@@ -73,7 +73,12 @@ public struct MenuPopoverView: View {
                 Divider().opacity(0.5)
 
                 totalCreditsUsageView
-                
+
+                if let totals = self.session.snapshot?.providerTotals, !totals.isEmpty {
+                    Divider().opacity(0.5)
+                    providerTotalsView(totals: totals)
+                }
+
                 Divider().opacity(0.5)
 
                 MenuFooterView()
@@ -127,6 +132,45 @@ public struct MenuPopoverView: View {
                 
         }
         .maxFrame(true, false, alignment: .leading)
+    }
+
+    private func providerTotalsView(totals: [ProviderUsageTotal]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("External Provider Usage")
+                .font(.app(.satoshiRegular, size: 12))
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(totals) { total in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(total.provider.displayName)
+                                .font(.app(.satoshiMedium, size: 13))
+                                .foregroundStyle(.primary)
+                            Text("Requests: \(total.requestCount)")
+                                .font(.app(.satoshiRegular, size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Text(self.formattedSpend(for: total))
+                            .font(.app(.satoshiBold, size: 13))
+                            .foregroundStyle(.primary)
+                    }
+                }
+            }
+            .padding(12)
+            .background(Color.primary.opacity(0.03))
+            .cornerRadius(10)
+        }
+        .maxFrame(true, false, alignment: .leading)
+    }
+
+    private func formattedSpend(for total: ProviderUsageTotal) -> String {
+        if total.currencyCode.uppercased() == "USD" {
+            return total.spendCents.dollarStringFromCents
+        }
+        let amount = Double(total.spendCents) / 100.0
+        return String(format: "%@ %.2f", total.currencyCode.uppercased(), amount)
     }
     
     private func setLoggedOut() async {

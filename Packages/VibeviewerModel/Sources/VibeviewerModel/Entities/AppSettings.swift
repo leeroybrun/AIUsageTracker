@@ -9,6 +9,7 @@ public final class AppSettings: Codable, Sendable, Equatable {
     public var pauseOnScreenSleep: Bool
     public var appearance: AppAppearance
     public var analyticsDataDays: Int
+    public var providerSettings: ProviderSettings
 
     public init(
         launchAtLogin: Bool = false,
@@ -16,7 +17,8 @@ public final class AppSettings: Codable, Sendable, Equatable {
         overview: AppSettings.Overview = AppSettings.Overview(refreshInterval: 5),
         pauseOnScreenSleep: Bool = false,
         appearance: AppAppearance = .system,
-        analyticsDataDays: Int = 7
+        analyticsDataDays: Int = 7,
+        providerSettings: ProviderSettings = .init()
     ) {
         self.launchAtLogin = launchAtLogin
         self.usageHistory = usageHistory
@@ -24,6 +26,7 @@ public final class AppSettings: Codable, Sendable, Equatable {
         self.pauseOnScreenSleep = pauseOnScreenSleep
         self.appearance = appearance
         self.analyticsDataDays = analyticsDataDays
+        self.providerSettings = providerSettings
     }
 
     public static func == (lhs: AppSettings, rhs: AppSettings) -> Bool {
@@ -32,7 +35,8 @@ public final class AppSettings: Codable, Sendable, Equatable {
             lhs.overview == rhs.overview &&
             lhs.pauseOnScreenSleep == rhs.pauseOnScreenSleep &&
             lhs.appearance == rhs.appearance &&
-            lhs.analyticsDataDays == rhs.analyticsDataDays
+            lhs.analyticsDataDays == rhs.analyticsDataDays &&
+            lhs.providerSettings == rhs.providerSettings
     }
 
     // MARK: - Codable (backward compatible)
@@ -44,6 +48,7 @@ public final class AppSettings: Codable, Sendable, Equatable {
         case pauseOnScreenSleep
         case appearance
         case analyticsDataDays
+        case providerSettings
     }
 
     public required convenience init(from decoder: Decoder) throws {
@@ -54,13 +59,15 @@ public final class AppSettings: Codable, Sendable, Equatable {
         let pauseOnScreenSleep = try container.decodeIfPresent(Bool.self, forKey: .pauseOnScreenSleep) ?? false
         let appearance = try container.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? .system
         let analyticsDataDays = try container.decodeIfPresent(Int.self, forKey: .analyticsDataDays) ?? 7
+        let providerSettings = try container.decodeIfPresent(ProviderSettings.self, forKey: .providerSettings) ?? .init()
         self.init(
             launchAtLogin: launchAtLogin,
             usageHistory: usageHistory,
             overview: overview,
             pauseOnScreenSleep: pauseOnScreenSleep,
             appearance: appearance,
-            analyticsDataDays: analyticsDataDays
+            analyticsDataDays: analyticsDataDays,
+            providerSettings: providerSettings
         )
     }
 
@@ -72,6 +79,7 @@ public final class AppSettings: Codable, Sendable, Equatable {
         try container.encode(self.pauseOnScreenSleep, forKey: .pauseOnScreenSleep)
         try container.encode(self.appearance, forKey: .appearance)
         try container.encode(self.analyticsDataDays, forKey: .analyticsDataDays)
+        try container.encode(self.providerSettings, forKey: .providerSettings)
     }
 
     public struct Overview: Codable, Sendable, Equatable {
@@ -91,6 +99,40 @@ public final class AppSettings: Codable, Sendable, Equatable {
             limit: Int = 5
         ) {
             self.limit = limit
+        }
+    }
+
+    public struct ProviderSettings: Codable, Sendable, Equatable {
+        public var enableOpenAI: Bool
+        public var enableAnthropic: Bool
+        public var enableGoogleGemini: Bool
+        public var openAIAPIKey: String
+        public var openAIOrganization: String?
+        public var anthropicAPIKey: String
+        public var googleServiceAccountJSON: String
+        public var googleProjectID: String
+        public var googleBillingAccountID: String
+
+        public init(
+            enableOpenAI: Bool = false,
+            enableAnthropic: Bool = false,
+            enableGoogleGemini: Bool = false,
+            openAIAPIKey: String = "",
+            openAIOrganization: String? = nil,
+            anthropicAPIKey: String = "",
+            googleServiceAccountJSON: String = "",
+            googleProjectID: String = "",
+            googleBillingAccountID: String = ""
+        ) {
+            self.enableOpenAI = enableOpenAI
+            self.enableAnthropic = enableAnthropic
+            self.enableGoogleGemini = enableGoogleGemini
+            self.openAIAPIKey = openAIAPIKey
+            self.openAIOrganization = openAIOrganization
+            self.anthropicAPIKey = anthropicAPIKey
+            self.googleServiceAccountJSON = googleServiceAccountJSON
+            self.googleProjectID = googleProjectID
+            self.googleBillingAccountID = googleBillingAccountID
         }
     }
 

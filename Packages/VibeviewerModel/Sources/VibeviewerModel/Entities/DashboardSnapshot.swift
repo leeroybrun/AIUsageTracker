@@ -22,6 +22,7 @@ public class DashboardSnapshot: Codable, Equatable {
     public let freeUsageCents: Int
     /// 用户分析数据
     public let userAnalytics: UserAnalytics?
+    public let providerTotals: [ProviderUsageTotal]
 
     public init(
         email: String,
@@ -33,7 +34,8 @@ public class DashboardSnapshot: Codable, Equatable {
         requestYestoday: Int = 0,
         usageSummary: UsageSummary? = nil,
         freeUsageCents: Int = 0,
-        userAnalytics: UserAnalytics? = nil
+        userAnalytics: UserAnalytics? = nil,
+        providerTotals: [ProviderUsageTotal] = []
     ) {
         self.email = email
         self.totalRequestsAllModels = totalRequestsAllModels
@@ -45,6 +47,7 @@ public class DashboardSnapshot: Codable, Equatable {
         self.usageSummary = usageSummary
         self.freeUsageCents = freeUsageCents
         self.userAnalytics = userAnalytics
+        self.providerTotals = providerTotals
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -58,6 +61,7 @@ public class DashboardSnapshot: Codable, Equatable {
         case usageSummary
         case freeUsageCents
         case userAnalytics
+        case providerTotals
     }
 
     public required init(from decoder: Decoder) throws {
@@ -72,6 +76,7 @@ public class DashboardSnapshot: Codable, Equatable {
         self.usageSummary = try? container.decode(UsageSummary.self, forKey: .usageSummary)
         self.freeUsageCents = (try? container.decode(Int.self, forKey: .freeUsageCents)) ?? 0
         self.userAnalytics = try? container.decode(UserAnalytics.self, forKey: .userAnalytics)
+        self.providerTotals = (try? container.decode([ProviderUsageTotal].self, forKey: .providerTotals)) ?? []
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -92,6 +97,9 @@ public class DashboardSnapshot: Codable, Equatable {
         if let userAnalytics = self.userAnalytics {
             try container.encode(userAnalytics, forKey: .userAnalytics)
         }
+        if !self.providerTotals.isEmpty {
+            try container.encode(self.providerTotals, forKey: .providerTotals)
+        }
     }
 
     /// 计算 plan + onDemand 的总消耗金额（以分为单位）
@@ -110,10 +118,11 @@ public class DashboardSnapshot: Codable, Equatable {
     public static func == (lhs: DashboardSnapshot, rhs: DashboardSnapshot) -> Bool {
         lhs.email == rhs.email &&
             lhs.totalRequestsAllModels == rhs.totalRequestsAllModels &&
-            lhs.spendingCents == rhs.spendingCents &&
-            lhs.hardLimitDollars == rhs.hardLimitDollars &&
-            lhs.usageSummary == rhs.usageSummary &&
-            lhs.freeUsageCents == rhs.freeUsageCents &&
-            lhs.userAnalytics == rhs.userAnalytics
+        lhs.spendingCents == rhs.spendingCents &&
+        lhs.hardLimitDollars == rhs.hardLimitDollars &&
+        lhs.usageSummary == rhs.usageSummary &&
+        lhs.freeUsageCents == rhs.freeUsageCents &&
+        lhs.userAnalytics == rhs.userAnalytics &&
+        lhs.providerTotals == rhs.providerTotals
     }
 }

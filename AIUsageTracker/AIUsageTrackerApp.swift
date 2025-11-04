@@ -1,10 +1,3 @@
-//
-//  VibeviewerApp.swift
-//  Vibeviewer
-//
-//  Created by Groot chen on 2025/8/24.
-//
-
 import Observation
 import SwiftUI
 import VibeviewerAPI
@@ -18,7 +11,7 @@ import VibeviewerStorage
 import VibeviewerShareUI
 
 @main
-struct VibeviewerApp: App {
+struct AIUsageTrackerApp: App {
     @State private var settings: AppSettings = DefaultCursorStorageService.loadSettingsSync()
 
     @State private var session: VibeviewerModel.AppSession = .init(
@@ -62,14 +55,21 @@ struct VibeviewerApp: App {
                 .foregroundStyle(.primary)
             Text({
                 guard let snapshot = self.session.snapshot else { return "" }
-                
+
                 if let usageSummary = snapshot.usageSummary {
                     let planUsed = usageSummary.individualUsage.plan.used
                     let onDemandUsed = usageSummary.individualUsage.onDemand?.used ?? 0
-                    let totalUsageCents = planUsed + onDemandUsed
+                    let providerCents = snapshot.providerTotals
+                        .filter { $0.provider != .cursor }
+                        .reduce(0) { $0 + $1.spendCents }
+                    let totalUsageCents = planUsed + onDemandUsed + providerCents
                     return totalUsageCents.dollarStringFromCents
                 } else {
-                    return snapshot.spendingCents.dollarStringFromCents
+                    let providerCents = snapshot.providerTotals
+                        .filter { $0.provider != .cursor }
+                        .reduce(0) { $0 + $1.spendCents }
+                    let total = snapshot.spendingCents + providerCents
+                    return total.dollarStringFromCents
                 }
             }())
                 .font(.app(.satoshiBold, size: 15))

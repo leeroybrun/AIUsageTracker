@@ -96,7 +96,7 @@ public final class DefaultDashboardRefreshService: DashboardRefreshService {
         do {
             // 计算时间范围
             let (analyticsStartMs, analyticsEndMs) = self.analyticsDateRangeMs()
-            
+
             // 使用 async let 并发发起所有三个独立的 API 请求
             async let usageSummary = try await self.api.fetchUsageSummary(
                 cookieHeader: creds.cookieHeader
@@ -114,6 +114,7 @@ public final class DefaultDashboardRefreshService: DashboardRefreshService {
                 endDateMs: analyticsEndMs,
                 cookieHeader: creds.cookieHeader
             )
+            async let providerTotalsTask = self.fetchExternalProviderTotals()
 
             // 等待 usageSummary，用于判断 Team Plan
             let usageSummaryValue = try await usageSummary
@@ -147,7 +148,8 @@ public final class DefaultDashboardRefreshService: DashboardRefreshService {
                 requestYestoday: current?.requestYestoday ?? 0,
                 usageSummary: usageSummaryValue,
                 freeUsageCents: freeCents,
-                userAnalytics: current?.userAnalytics
+                userAnalytics: current?.userAnalytics,
+                providerTotals: current?.providerTotals ?? []
             )
             self.session.snapshot = overview
             try? await self.storage.saveDashboardSnapshot(overview)
@@ -161,6 +163,16 @@ public final class DefaultDashboardRefreshService: DashboardRefreshService {
                 analyticsValue = nil
             }
             let (reqToday, reqYesterday) = self.splitTodayAndYesterdayCounts(from: historyValue.events)
+            let providerTotals = await providerTotalsTask
+            let cursorSpend = usageSummaryValue.individualUsage.plan.used + (usageSummaryValue.individualUsage.onDemand?.used ?? 0)
+            let cursorRequests = historyValue.events.reduce(0) { $0 + $1.requestCostCount }
+            let cursorTotal = ProviderUsageTotal(
+                provider: .cursor,
+                spendCents: cursorSpend,
+                requestCount: cursorRequests,
+                currencyCode: "USD"
+            )
+            let totalsWithCursor = [cursorTotal] + providerTotals
             let merged = DashboardSnapshot(
                 email: overview.email,
                 totalRequestsAllModels: overview.totalRequestsAllModels,
@@ -171,7 +183,8 @@ public final class DefaultDashboardRefreshService: DashboardRefreshService {
                 requestYestoday: reqYesterday,
                 usageSummary: usageSummaryValue,
                 freeUsageCents: overview.freeUsageCents,
-                userAnalytics: analyticsValue
+                userAnalytics: analyticsValue,
+                providerTotals: totalsWithCursor
             )
             self.session.snapshot = merged
             try? await self.storage.saveDashboardSnapshot(merged)
@@ -198,6 +211,18 @@ public final class DefaultDashboardRefreshService: DashboardRefreshService {
         let days = self.settings.analyticsDataDays
         let (start, end) = VibeviewerCore.DateUtils.daysAgoToNowRange(days: days)
         return (VibeviewerCore.DateUtils.millisecondsString(from: start), VibeviewerCore.DateUtils.millisecondsString(from: end))
+    }
+
+    private func providerDateRange() -> DateInterval {
+        let days = max(self.settings.analyticsDataDays, 1)
+        let (start, end) = VibeviewerCore.DateUtils.daysAgoToNowRange(days: days)
+        return DateInterval(start: start, end: end)
+    }
+
+    private func fetchExternalProviderTotals() async -> [ProviderUsageTotal] {
+        let aggregator = MultiProviderUsageAggregator(configuration: .init(settings: self.settings.providerSettings))
+        let range = self.providerDateRange()
+        return await aggregator.fetchTotals(dateRange: range)
     }
 
     private func splitTodayAndYesterdayCounts(from events: [UsageEvent]) -> (Int, Int) {

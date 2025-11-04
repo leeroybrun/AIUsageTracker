@@ -17,6 +17,15 @@ public struct SettingsView: View {
     @State private var appearanceSelection: VibeviewerModel.AppAppearance = .system
     @State private var showingClearSessionAlert: Bool = false
     @State private var analyticsDataDays: String = ""
+    @State private var enableOpenAI: Bool = false
+    @State private var openAIAPIKey: String = ""
+    @State private var openAIOrganization: String = ""
+    @State private var enableAnthropic: Bool = false
+    @State private var anthropicAPIKey: String = ""
+    @State private var enableGemini: Bool = false
+    @State private var googleServiceAccountJSON: String = ""
+    @State private var googleProjectID: String = ""
+    @State private var googleBillingAccountID: String = ""
 
     public init() {}
 
@@ -78,6 +87,51 @@ public struct SettingsView: View {
                 
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .font(.app(.satoshiMedium, size: 12))
+
+                Divider().opacity(0.4)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Providers")
+                        .font(.app(.satoshiBold, size: 14))
+
+                    Toggle("Enable OpenAI", isOn: $enableOpenAI)
+                        .font(.app(.satoshiMedium, size: 12))
+
+                    if enableOpenAI {
+                        SecureField("OpenAI API Key", text: $openAIAPIKey)
+                            .textFieldStyle(.roundedBorder)
+
+                        TextField("OpenAI Organization (optional)", text: $openAIOrganization)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    Toggle("Enable Anthropic", isOn: $enableAnthropic)
+                        .font(.app(.satoshiMedium, size: 12))
+
+                    if enableAnthropic {
+                        SecureField("Anthropic API Key", text: $anthropicAPIKey)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    Toggle("Enable Google Gemini", isOn: $enableGemini)
+                        .font(.app(.satoshiMedium, size: 12))
+
+                    if enableGemini {
+                        TextField("Google Cloud Project ID", text: $googleProjectID)
+                            .textFieldStyle(.roundedBorder)
+
+                        TextField("Billing Account ID", text: $googleBillingAccountID)
+                            .textFieldStyle(.roundedBorder)
+
+                        TextEditor(text: $googleServiceAccountJSON)
+                            .font(.app(.satoshiMedium, size: 12))
+                            .frame(height: 100)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(Color.secondary.opacity(0.2))
+                            )
+                    }
+                }
             }
             
             HStack {
@@ -108,7 +162,7 @@ public struct SettingsView: View {
             }
         }
         .padding(20)
-        .frame(width: 500, height: 400)
+        .frame(width: 520, height: 620)
         .onAppear {
             loadSettings()
         }
@@ -134,8 +188,17 @@ public struct SettingsView: View {
         launchAtLogin = launchAtLoginService.isEnabled
         appearanceSelection = appSettings.appearance
         analyticsDataDays = String(appSettings.analyticsDataDays)
+        enableOpenAI = appSettings.providerSettings.enableOpenAI
+        openAIAPIKey = appSettings.providerSettings.openAIAPIKey
+        openAIOrganization = appSettings.providerSettings.openAIOrganization ?? ""
+        enableAnthropic = appSettings.providerSettings.enableAnthropic
+        anthropicAPIKey = appSettings.providerSettings.anthropicAPIKey
+        enableGemini = appSettings.providerSettings.enableGoogleGemini
+        googleServiceAccountJSON = appSettings.providerSettings.googleServiceAccountJSON
+        googleProjectID = appSettings.providerSettings.googleProjectID
+        googleBillingAccountID = appSettings.providerSettings.googleBillingAccountID
     }
-    
+
     private func saveSettings() {
         if let refreshValue = Int(refreshFrequency) {
             appSettings.overview.refreshInterval = refreshValue
@@ -146,11 +209,20 @@ public struct SettingsView: View {
         }
         
         appSettings.pauseOnScreenSleep = pauseOnScreenSleep
-        
+
         _ = launchAtLoginService.setEnabled(launchAtLogin)
         appSettings.launchAtLogin = launchAtLogin
         appSettings.appearance = appearanceSelection
         appSettings.analyticsDataDays = Int(analyticsDataDays) ?? 7 // Default to 7 if invalid
+        appSettings.providerSettings.enableOpenAI = enableOpenAI
+        appSettings.providerSettings.openAIAPIKey = openAIAPIKey
+        appSettings.providerSettings.openAIOrganization = openAIOrganization.isEmpty ? nil : openAIOrganization
+        appSettings.providerSettings.enableAnthropic = enableAnthropic
+        appSettings.providerSettings.anthropicAPIKey = anthropicAPIKey
+        appSettings.providerSettings.enableGoogleGemini = enableGemini
+        appSettings.providerSettings.googleServiceAccountJSON = googleServiceAccountJSON
+        appSettings.providerSettings.googleProjectID = googleProjectID
+        appSettings.providerSettings.googleBillingAccountID = googleBillingAccountID
     }
     
     private func clearAppSession() async {
