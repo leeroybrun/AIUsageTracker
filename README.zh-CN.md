@@ -1,4 +1,4 @@
-## Vibeviewer
+## AIUsageTracker
 
 [English](README.md) | 简体中文
 
@@ -23,6 +23,7 @@
 - **登录与设置**：独立的登录与设置窗口，支持持久化凭据与应用偏好。
 - **自动刷新**：基于屏幕电源/活跃状态的智能刷新策略，节能且及时。
 - **模块化架构**：Core ← Model ← API ← Feature 单向依赖，DTO→Domain 映射仅在 API 层完成。
+- **多供应商追踪**：聚合 Cursor、OpenAI、Anthropic 与 Google Gemini 的使用量与费用，展示分供应商的总花费与请求数。
 - **分享组件**：内置字体与图形资源，便捷生成分享视图。
 
 ### 注意
@@ -39,9 +40,9 @@
 项目采用 Workspace + 多个 Swift Packages 的分层设计（单向依赖：Core ← Model ← API ← Feature）：
 
 ```
-Vibeviewer/
-├─ Vibeviewer.xcworkspace           # 打开此工作区进行开发
-├─ Vibeviewer/                      # App 外壳（很薄，仅入口）
+AIUsageTracker/
+├─ AIUsageTracker.xcworkspace           # 打开此工作区进行开发
+├─ AIUsageTracker/                 # App 外壳（很薄，仅入口）
 ├─ Packages/
 │  ├─ VibeviewerCore/               # Core：工具/扩展/通用服务（不依赖业务层）
 │  ├─ VibeviewerModel/              # Model：纯领域实体（值类型/Sendable）
@@ -97,8 +98,8 @@ Scripts/generate.sh
 2) 打开工作区并运行：
 
 ```bash
-open Vibeviewer.xcworkspace
-# 在 Xcode 中选择 scheme：Vibeviewer，目标：My Mac（macOS），直接 Run
+open AIUsageTracker.xcworkspace
+# 在 Xcode 中选择 scheme：AIUsageTracker，目标：My Mac（macOS），直接 Run
 ```
 
 3) 命令行构建/打包（可选）：
@@ -114,7 +115,7 @@ make release   # 清理 → 生成 → 构建 → 打包全流程
 ## 运行与调试
 
 - 初次运行会在菜单栏显示图标与关键指标，点击打开弹窗查看详细信息。
-- 登录与设置窗口通过依赖注入的窗口管理服务打开（参见 `VibeviewerApp.swift` 中的 `.environment(...)`）。
+- 登录与设置窗口通过依赖注入的窗口管理服务打开（参见 `AIUsageTrackerApp.swift` 中的 `.environment(...)`）。
 - 自动刷新服务将在应用启动与屏幕状态变化时调度执行。
 
 ---
@@ -186,7 +187,7 @@ swift test --package-path Packages/VibeviewerShareUI
 
 ## 致谢
 
-感谢所有为模块化 Swift 包架构、SwiftUI 生态与开发者工具做出贡献的社区成员。也感谢你对 Vibeviewer 的关注与改进！
+感谢所有为模块化 Swift 包架构、SwiftUI 生态与开发者工具做出贡献的社区成员。也感谢你对 AIUsageTracker 的关注与改进！
 
 UI 灵感来自 X 用户 @hi_caicai 的作品：[Minto: Vibe Coding Tracker](https://apps.apple.com/ca/app/minto-vibe-coding-tracker/id6749605275?mt=12)。
 

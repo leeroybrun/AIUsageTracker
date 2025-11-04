@@ -16,6 +16,6 @@ tuist generate || {
   exit 1
 }
 
-echo "[tuist] Done. Open with: open Vibeviewer.xcworkspace"
+echo "[tuist] Done. Open with: open AIUsageTracker.xcworkspace"
 
 

@@ -1,6 +1,8 @@
 import Foundation
-import Security
 import VibeviewerModel
+
+#if canImport(Security)
+import Security
 
 struct GoogleGeminiUsageProvider: UsageProvider {
     let settings: AppSettings.ProviderSettings
@@ -215,4 +217,24 @@ private extension GoogleBillingReportResponse.MoneyValue {
         return total
     }
 }
+
+#else
+
+struct GoogleGeminiUsageProvider: UsageProvider {
+    let settings: AppSettings.ProviderSettings
+
+    init(settings: AppSettings.ProviderSettings, session: URLSession = .shared) {
+        self.settings = settings
+    }
+
+    var kind: UsageProviderKind { .googleGemini }
+
+    func fetchTotals(dateRange: DateInterval) async throws -> ProviderUsageTotal? {
+        // Google Cloud Billing APIs rely on macOS-specific Security frameworks for JWT signing.
+        // On platforms without Security, we cannot authenticate, so return nil.
+        return nil
+    }
+}
+
+#endif
 

@@ -1,4 +1,4 @@
-## Vibeviewer
+## AIUsageTracker
 
 English | [简体中文](README.zh-CN.md)
 
@@ -23,6 +23,7 @@ An open-source macOS menu bar app that surfaces workspace/team usage and spend a
 - **Sign-in & Settings**: Dedicated windows with persisted credentials and preferences.
 - **Power-aware refresh**: Smart refresh strategy reacting to screen power/activity state.
 - **Modular architecture**: One-way dependencies Core ← Model ← API ← Feature; DTO→Domain mapping lives in API only.
+- **Multi-provider tracking**: Aggregate Cursor, OpenAI, Anthropic, and Google Gemini usage with per-provider spend and request totals.
 - **Sharing components**: Built-in fonts and assets to generate shareable views.
 
 ### Notes
@@ -39,9 +40,9 @@ An open-source macOS menu bar app that surfaces workspace/team usage and spend a
 Workspace with multiple Swift Packages (one-way dependency: Core ← Model ← API ← Feature):
 
 ```
-Vibeviewer/
-├─ Vibeviewer.xcworkspace           # Open this workspace
-├─ Vibeviewer/                      # Thin app shell (entry only)
+AIUsageTracker/
+├─ AIUsageTracker.xcworkspace           # Open this workspace
+├─ AIUsageTracker/                 # Thin app shell (entry only)
 ├─ Packages/
 │  ├─ VibeviewerCore/               # Core: utilities/extensions/shared services
 │  ├─ VibeviewerModel/              # Model: pure domain entities (value types/Sendable)
@@ -97,8 +98,8 @@ Scripts/generate.sh
 2) Open and run:
 
 ```bash
-open Vibeviewer.xcworkspace
-# In Xcode: scheme = Vibeviewer, destination = My Mac (macOS), then Run
+open AIUsageTracker.xcworkspace
+# In Xcode: scheme = AIUsageTracker, destination = My Mac (macOS), then Run
 ```
 
 3) Build/package via CLI (optional):
@@ -114,7 +115,7 @@ make release   # Clean → Generate → Build → Package
 ## Run & Debug
 
 - The menu bar shows the icon and key metrics; click to open the popover.
-- Sign-in and Settings windows are provided via environment-injected window managers (see `.environment(...)` in `VibeviewerApp.swift`).
+- Sign-in and Settings windows are provided via environment-injected window managers (see `.environment(...)` in `AIUsageTrackerApp.swift`).
 - Auto-refresh starts on app launch and reacts to screen power/activity changes.
 
 ---
@@ -186,7 +187,7 @@ This project is open-sourced under the MIT License. See `LICENSE` for details.
 
 ## Acknowledgements
 
-Thanks to the community for contributions to modular Swift packages, SwiftUI, and developer tooling — and thanks for helping improve Vibeviewer!
+Thanks to the community for contributions to modular Swift packages, SwiftUI, and developer tooling — and thanks for helping improve AIUsageTracker!
 
 UI inspiration from X user @hi_caicai — see [Minto: Vibe Coding Tracker](https://apps.apple.com/ca/app/minto-vibe-coding-tracker/id6749605275?mt=12).
 

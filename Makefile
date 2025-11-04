@@ -7,8 +7,8 @@ clear:
 	@Scripts/clear.sh
 
 build:
-	@echo "🔨 Building Vibeviewer..."
-	@xcodebuild -workspace Vibeviewer.xcworkspace -scheme Vibeviewer -configuration Release -destination "platform=macOS" -skipMacroValidation build
+	@echo "🔨 Building AIUsageTracker..."
+	@xcodebuild -workspace AIUsageTracker.xcworkspace -scheme AIUsageTracker -configuration Release -destination "platform=macOS" -skipMacroValidation build
 
 dmg:
 	@echo "💽 Creating DMG package..."
